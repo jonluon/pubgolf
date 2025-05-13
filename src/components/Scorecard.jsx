@@ -4,11 +4,13 @@ import {
   setDoc,
   deleteDoc,
   onSnapshot,
-  collection
+  collection,
+  getDocs
 } from "firebase/firestore";
 import { db } from "../firebase";
 import PlayerStats from "./PlayerStats";
 import confetti from "canvas-confetti";
+import HoleList from "./HoleList";
 
 const holes = [
   { id: "as", name: "A's", drink: "24oz beer", par: 3, emoji: "🍺" },
@@ -105,11 +107,21 @@ export default function Scorecard({ user, onScoreSubmit }) {
   }, [user.phone]);
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, "games", gameId, "players"), (snap) => {
-      const all = snap.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+    const fetchPlayersWithScores = async () => {
+      const snap = await getDocs(collection(db, "games", gameId, "players"));
+      const all = await Promise.all(
+        snap.docs.map(async (docSnap) => {
+          const player = { ...docSnap.data(), id: docSnap.id };
+          const scoreSnap = await getDocs(collection(db, "games", gameId, "players", player.id, "scores"));
+          const scores = {};
+          scoreSnap.forEach((s) => (scores[s.id] = s.data()));
+          player.scores = scores;
+          return player;
+        })
+      );
       setPlayers(all);
-    });
-    return () => unsub();
+    };
+    fetchPlayersWithScores();
   }, []);
 
   useEffect(() => {
@@ -123,13 +135,14 @@ export default function Scorecard({ user, onScoreSubmit }) {
   }, 0);
   const parDiff = totalSips - totalPar;
 
-  const sorted = [...players].sort((a, b) => {
-    const sum = (obj) => Object.values(obj?.scores || {}).reduce((s, val) => s + (val?.sips || 0), 0);
-    return sum(a) - sum(b);
-  });
-  const myPlayer = sorted.find((p) => p.phone === user.phone);
+  const sorted = [...players].map((p) => {
+    const total = Object.values(p?.scores || {}).reduce((sum, s) => sum + (s?.sips || 0), 0);
+    return { ...p, total };
+  }).sort((a, b) => a.total - b.total);
+
+  const myRank = totalSips > 0 ? sorted.findIndex((p) => p.phone === user.phone) + 1 : "--";
+
   const myStrokes = totalSips;
-  const myRank = myStrokes > 0 ? sorted.findIndex((p) => p.phone === user.phone) + 1 : "--";
   const totalPlayers = sorted.length;
 
   if (currentIndex >= holes.length) {
@@ -258,7 +271,7 @@ export default function Scorecard({ user, onScoreSubmit }) {
           </button>
         </div>
       </div>
-
+      <HoleList scores={scores} />
       <PlayerStats
         key={refreshKey}
         totalSips={totalSips}

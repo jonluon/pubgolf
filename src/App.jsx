@@ -3,6 +3,7 @@ import { db, auth } from "./firebase";
 import Scorecard from "./components/Scorecard";
 import Leaderboard from "./components/Leaderboard";
 import Login from "./components/Login";
+import HoleList from "./components/HoleList";
 import {
   doc,
   setDoc,
