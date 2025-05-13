@@ -82,7 +82,7 @@ setTeamRank(allTeamsHaveZero ? "--" : thisTeam + 1);
         {/* Team Stats */}
         <div className="flex-1">
           <p className="text-sm text-gray-500">Team Rank</p>
-          <p className="text-xl font-bold text-blue-500">
+          <p className="text-xl font-bold text-blue-700">
             👥 {teamRank} / {totalTeams}
           </p>
           <p className="text-sm text-gray-600 mt-1">

@@ -39,7 +39,11 @@ function getResult(sips, par) {
 export default function Scorecard({ user, onScoreSubmit }) {
   const gameId = "drinkers-society";
   const [scores, setScores] = useState({});
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    const saved = parseInt(localStorage.getItem("pubgolf-currentIndex"));
+    return isNaN(saved) ? 0 : saved;
+  });
+  
   const [sips, setSips] = useState();
   const [players, setPlayers] = useState([]);
   const [hasCelebrated, setHasCelebrated] = useState(false);
@@ -67,11 +71,13 @@ export default function Scorecard({ user, onScoreSubmit }) {
     await updateScore();
     const nextUnscoredIndex = holes.findIndex((h, i) => !scores[h.id] && i > currentIndex);
     const nextIndex = nextUnscoredIndex !== -1 ? nextUnscoredIndex : currentIndex + 1;
-    setCurrentIndex(Math.min(nextIndex, holes.length));
+    const clampedIndex = Math.min(nextIndex, holes.length);
+    setCurrentIndex(clampedIndex);
+    localStorage.setItem("pubgolf-currentIndex", clampedIndex); // ✅ only here
   };
+  
 
   const handleBack = async () => {
-    await updateScore();
     const prevIndex = Math.max(0, currentIndex - 1);
     setCurrentIndex(prevIndex);
   };
@@ -84,11 +90,13 @@ export default function Scorecard({ user, onScoreSubmit }) {
       }
       setScores({});
       setCurrentIndex(0);
+      localStorage.setItem("pubgolf-currentIndex", 0); // ✅ this line
       setSips();
       if (typeof onScoreSubmit === "function") onScoreSubmit();
       setRefreshKey((prev) => prev + 1);
     }
   };
+  
 
   useEffect(() => {
     const unsub = onSnapshot(
@@ -97,10 +105,6 @@ export default function Scorecard({ user, onScoreSubmit }) {
         const loaded = {};
         snapshot.forEach((doc) => (loaded[doc.id] = doc.data()));
         setScores(loaded);
-
-        const progressIndex = holes.findIndex((h) => !loaded[h.id]);
-        const nextHoleIndex = progressIndex === -1 ? holes.length : progressIndex;
-        setCurrentIndex(nextHoleIndex);
       }
     );
     return () => unsub();
@@ -122,7 +126,7 @@ export default function Scorecard({ user, onScoreSubmit }) {
       setPlayers(all);
     };
     fetchPlayersWithScores();
-  }, []);
+  }, [refreshKey]);
 
   useEffect(() => {
     setSips(loadSipsForHole(holes[currentIndex]?.id));
@@ -153,9 +157,9 @@ export default function Scorecard({ user, onScoreSubmit }) {
 
     return (
       <div className="bg-green-50 p-6 rounded-xl shadow-sm mb-6 text-center">
-        <h2 className="text-xl font-bold text-green-700 mb-2">✅ You’re Blacked Out</h2>
+        <h2 className="text-xl font-bold text-green-700 mb-2">🍾 Congrats You’re Blacked Out!</h2>
         <p className="text-lg">
-          Congrats, you finished {holes.length} drinks in {totalSips} sips.
+          You finished {holes.length} drinks in {totalSips} sips.
         </p>
         <button
           onClick={resetScorecard}
@@ -239,7 +243,7 @@ export default function Scorecard({ user, onScoreSubmit }) {
             {sips ?? "--"}
           </span>
           <button
-            onClick={() => setSips((prev) => Math.min(10, (prev ?? 0) + 1))}
+            onClick={() => setSips((prev) => Math.min(20, (prev ?? 0) + 1))}
             className="px-4 py-2 bg-black rounded-full hover:bg-gray-900 text-lg text-white font-bold"
           >
             +
