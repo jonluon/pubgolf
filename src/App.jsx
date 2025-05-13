@@ -18,7 +18,29 @@ function App() {
   const [error, setError] = useState(null);
   const [showLogout, setShowLogout] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [countdown, setCountdown] = useState("");
   const gameId = "drinkers-society";
+
+  const targetTime = new Date("2025-05-14T12:00:00-04:00"); // EST
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      const diff = targetTime - now;
+
+      if (diff <= 0) {
+        setCountdown("LIVE");
+        clearInterval(interval);
+      } else {
+        const hours = String(Math.floor((diff / (1000 * 60 * 60)) % 24)).padStart(2, '0');
+        const minutes = String(Math.floor((diff / (1000 * 60)) % 60)).padStart(2, '0');
+        const seconds = String(Math.floor((diff / 1000) % 60)).padStart(2, '0');
+        setCountdown(`${hours}:${minutes}:${seconds}`);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogin = async ({ name, phone }) => {
     const playerRef = doc(db, "games", gameId, "players", phone);
@@ -108,18 +130,20 @@ function App() {
         </div>
       </div>
 
-<div className="p-6 text-center mb-0">
+      <div className="p-6 text-center mb-0">
         <p className="text-3xl font-bold text-gray-800 mb-2">Drinker's Society Open</p>
-          <p className="text-xl font-semibold text-gray-800 mb-2">Wednesday, May 14th @ Noon</p>
-  <div className="flex items-center justify-center space-x-4">
-    <div className="flex-grow h-px bg-gray-200 mt-1"></div>
-<p className="text-md text-gray-400 mb-0">
-  {players.length} player{players.length !== 1 ? "s" : ""} joined
-</p>
-    <div className="flex-grow h-px bg-gray-200 mt-1"></div>
-  </div>
-</div>
-
+        <p className="text-xl font-semibold text-gray-800 mb-2">Wednesday, May 14th @ Noon</p>
+        <p className={`text-lg font-bold ${countdown === "LIVE" ? "text-red-600" : "text-gray-700"}`}>
+          {countdown === "LIVE" ? "LIVE" : `Starts in: ${countdown}`}
+        </p>
+        <div className="flex items-center justify-center space-x-4 mt-2">
+          <div className="flex-grow h-px bg-gray-200 mt-1"></div>
+          <p className="text-md text-gray-400 mb-0">
+            {players.length} player{players.length !== 1 ? "s" : ""} joined
+          </p>
+          <div className="flex-grow h-px bg-gray-200 mt-1"></div>
+        </div>
+      </div>
 
       {error && (
         <div className="bg-red-100 text-red-800 p-2 rounded mb-4 text-center">
