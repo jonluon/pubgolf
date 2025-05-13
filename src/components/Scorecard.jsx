@@ -24,7 +24,7 @@ const holes = [
 
 function getResult(sips, par) {
   const diff = sips - par;
-    if (diff < -2) return `${diff}`;
+  if (diff < -2) return `${diff}`;
   if (diff <= -2) return "Eagle";
   if (diff === -1) return "Birdie";
   if (diff === 0) return "✅ Par";
@@ -63,22 +63,15 @@ export default function Scorecard({ user, onScoreSubmit }) {
 
   const handleSubmit = async () => {
     await updateScore();
-    if (currentIndex < holes.length - 1) {
-      const nextIndex = currentIndex + 1;
-      setCurrentIndex(nextIndex);
-      setSips(loadSipsForHole(holes[nextIndex].id));
-    } else {
-      setCurrentIndex(currentIndex + 1);
-    }
+    const nextUnscoredIndex = holes.findIndex((h, i) => !scores[h.id] && i > currentIndex);
+    const nextIndex = nextUnscoredIndex !== -1 ? nextUnscoredIndex : currentIndex + 1;
+    setCurrentIndex(Math.min(nextIndex, holes.length));
   };
 
   const handleBack = async () => {
     await updateScore();
-    if (currentIndex > 0) {
-      const prevIndex = currentIndex - 1;
-      setCurrentIndex(prevIndex);
-      setSips(loadSipsForHole(holes[prevIndex].id));
-    }
+    const prevIndex = Math.max(0, currentIndex - 1);
+    setCurrentIndex(prevIndex);
   };
 
   const resetScorecard = async () => {
@@ -103,8 +96,7 @@ export default function Scorecard({ user, onScoreSubmit }) {
         snapshot.forEach((doc) => (loaded[doc.id] = doc.data()));
         setScores(loaded);
 
-        // Set currentIndex dynamically based on progress
-        const progressIndex = holes.findIndex(h => !loaded[h.id]);
+        const progressIndex = holes.findIndex((h) => !loaded[h.id]);
         const nextHoleIndex = progressIndex === -1 ? holes.length : progressIndex;
         setCurrentIndex(nextHoleIndex);
       }
@@ -170,24 +162,25 @@ export default function Scorecard({ user, onScoreSubmit }) {
             <div
               className="h-1 bg-green-700 rounded-full transition-all"
               style={{
-                width: `${(currentIndex / (holes.length - 1)) * 100}%`
+                width: `${(holes.findIndex(h => !scores[h.id]) / (holes.length - 1)) * 100}%`
               }}
             ></div>
           </div>
           <div className="flex justify-between w-full px-2 z-10">
             {holes.map((hole, i) => {
-              const isCurrent = i === currentIndex;
+              const isSelected = i === currentIndex;
               const isCompleted = scores[hole.id];
+              const isNextHole = !isCompleted && i === holes.findIndex(h => !scores[h.id]);
               const isPerfect = isCompleted && scores[hole.id].sips === 1;
-              const statusColor = isCurrent
+              const statusColor = isNextHole
                 ? "bg-green-900 text-white"
                 : isPerfect
                 ? "bg-gradient-to-r from-yellow-300 to-yellow-500 text-white"
                 : isCompleted
                 ? "bg-green-700 text-white"
                 : "bg-gray-200 text-gray-600";
-              const scale = isCurrent ? "scale-110" : "";
-              const shadow = isCurrent ? "shadow-md" : "";
+              const scale = isSelected ? "scale-110" : "";
+              const shadow = isSelected ? "shadow-md" : "";
               const scoreDiff = isCompleted ? scores[hole.id].sips - hole.par : null;
               const diffLabel =
                 scoreDiff === 0

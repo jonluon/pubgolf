@@ -82,7 +82,7 @@ setTeamRank(allTeamsHaveZero ? "--" : thisTeam + 1);
         {/* Team Stats */}
         <div className="flex-1">
           <p className="text-sm text-gray-500">Team Rank</p>
-          <p className="text-xl font-bold text-purple-700">
+          <p className="text-xl font-bold text-blue-500">
             👥 {teamRank} / {totalTeams}
           </p>
           <p className="text-sm text-gray-600 mt-1">
@@ -95,7 +95,7 @@ setTeamRank(allTeamsHaveZero ? "--" : thisTeam + 1);
 
         {/* Player Stats */}
         <div className="flex-1">
-          <p className="text-sm text-gray-500">Player Rank</p>
+          <p className="text-sm text-gray-500">Personal Rank</p>
           <p className="text-xl font-bold text-yellow-700">
             🏆 {myRank || "--"} / {totalPlayers || "--"}
           </p>
