@@ -3,6 +3,10 @@ import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { RotateCcw } from "lucide-react";
 
+const holeOrder = [
+  "as", "pmans", "dogs", "cafe", "pickles", "bdubs", "phyrst", "champs", "zenos"
+];
+
 export default function Leaderboard({ gameId, refreshKey }) {
   const [players, setPlayers] = useState([]);
   const [localRefresh, setLocalRefresh] = useState(0);
@@ -20,11 +24,16 @@ export default function Leaderboard({ gameId, refreshKey }) {
             collection(db, "games", gameId, "players", player.phone, "scores")
           );
 
-          const totalStrokes = scoresSnap.docs.reduce((sum, doc) => {
-            return sum + (doc.data().sips || 0);
-          }, 0);
+          const scores = {};
+          let totalStrokes = 0;
 
-          return { ...player, totalStrokes };
+          scoresSnap.docs.forEach(doc => {
+            const score = doc.data();
+            scores[doc.id] = score.sips || 0;
+            totalStrokes += score.sips || 0;
+          });
+
+          return { ...player, scores, totalStrokes };
         })
       );
 
@@ -46,7 +55,7 @@ export default function Leaderboard({ gameId, refreshKey }) {
   }, [gameId, refreshKey, localRefresh]);
 
   const getMedal = (index, player) => {
-    if (player.totalStrokes === 0) return "\u00A0";
+    if (player.totalStrokes === 0) return "—";
     if (index === 0) return "🥇";
     if (index === 1) return "🥈";
     if (index === 2) return "🥉";
@@ -54,7 +63,7 @@ export default function Leaderboard({ gameId, refreshKey }) {
   };
 
   return (
-    <div className="relative bg-white p-6 rounded-xl shadow border border-gray-200 mb-3">
+    <div className="relative bg-white p-6 rounded-xl shadow border border-gray-200 mb-3 overflow-x-auto">
       <style>
         {`
           @keyframes spin-reverse {
@@ -80,21 +89,34 @@ export default function Leaderboard({ gameId, refreshKey }) {
 
       <h2 className="text-2xl font-bold text-center mb-4 text-gray-800">Leaderboard</h2>
 
-      <ul className="space-y-2">
-        {players.map((player, index) => (
-          <li
-            key={player.phone}
-            className="flex justify-between items-center text-gray-800 border-b pb-2 last:border-none"
-          >
-            <span className="font-medium">
-              {getMedal(index, player)} {player.name || "Unnamed Player"}
-            </span>
-            <span className="text-sm text-gray-600">
-              {player.totalStrokes} Strokes
-            </span>
-          </li>
-        ))}
-      </ul>
+      <table className="table-auto w-full text-sm text-center border-collapse">
+        <thead>
+          <tr>
+            <th className="text-left px-2 py-2 border-b border-gray-300">Player</th>
+            {holeOrder.map((holeId, i) => (
+              <th key={holeId} className="px-2 py-2 border-b border-gray-300">
+                {i + 1}
+              </th>
+            ))}
+            <th className="px-2 py-2 border-b border-gray-300">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {players.map((player, index) => (
+            <tr key={player.phone} className="border-t border-gray-100">
+              <td className="text-left font-medium px-2 py-2 whitespace-nowrap">
+                {getMedal(index, player)} {player.name || "Unnamed"}
+              </td>
+              {holeOrder.map((holeId) => (
+                <td key={holeId} className="px-2 py-1 text-gray-700">
+                  {player.scores?.[holeId] ?? "-"}
+                </td>
+              ))}
+              <td className="font-semibold text-gray-800">{player.totalStrokes}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

@@ -12,14 +12,14 @@ import { X } from "lucide-react";
 
 const holes = [
   { id: "as", name: "A's", drink: "24oz beer", par: 3 },
-  { id: "champs", name: "Champ's", drink: "Dirty Sprite", par: 2 },
-  { id: "pickles", name: "Pickles", drink: "Busch Pitcher", par: 4 },
-  { id: "dogs", name: "Doggies", drink: "Iced Coffee", par: 3 },
-  { id: "cafe", name: "Cafe", drink: "Pitcher", par: 2 },
-  { id: "brothers", name: "Brother's", drink: "Whatever the deal is", par: 3 },
-  { id: "bdubs", name: "B-Dub's", drink: "Any tall beer", par: 4 },
-  { id: "zenos", name: "Zeno's", drink: "Irish Goodbye", par: 5 },
-  { id: "den", name: "Lions Den", drink: "Long Island", par: 3 }
+  { id: "pmans", name: "Pmans", drink: "Mimosas", par: 5 },
+  { id: "dogs", name: "Doggies", drink: "Iced Coffee", par: 2 },
+  { id: "cafe", name: "Cafe", drink: "Pitcher", par: 6 },
+  { id: "pickles", name: "Pickles", drink: "Busch Pitcher", par: 6 },
+  { id: "bdubs", name: "Bdubs", drink: "Any tall beer", par: 2 },
+  { id: "phyrst", name: "Phyrst", drink: "Trashcan (BJ shot = -1)", par: 3 },
+  { id: "champs", name: "Champs", drink: "Dirty Sprite", par: 2 },
+  { id: "zenos", name: "Zenos", drink: "Irish Goodbye", par: 4 }
 ];
 
 function getResult(sips, par) {

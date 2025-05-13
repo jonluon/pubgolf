@@ -84,7 +84,7 @@ function App() {
   return (
     <div className="max-w-xl mx-auto mt-2 p-4 relative">
       <div className="flex justify-between items-center mb-2">
-        <div className="text-black text-lg">🍺⛳pubgolf.io</div>
+        <div className="text-black text-lg">🍺⛳pubgolf</div>
         <div className="relative">
           <div
             onClick={() => setShowLogout((prev) => !prev)}
