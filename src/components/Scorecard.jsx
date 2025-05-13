@@ -8,7 +8,6 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 import PlayerStats from "./PlayerStats";
-import { X } from "lucide-react";
 
 const holes = [
   { id: "as", name: "A's", drink: "24oz beer", par: 3 },
@@ -49,7 +48,7 @@ export default function Scorecard({ user, onScoreSubmit }) {
   const gameId = "drinkers-society";
   const storedIndex = parseInt(localStorage.getItem("pubgolf-currentIndex")) || 0;
   const [scores, setScores] = useState({});
-  const [currentIndex, setCurrentIndex] = useState(storedIndex);
+  const [currentIndex, setCurrentIndex] = useState(holes.findIndex(h => !scores[h.id]) || 0);
   const [sips, setSips] = useState();
   const [players, setPlayers] = useState([]);
   const currentHole = holes[currentIndex];
@@ -77,30 +76,20 @@ export default function Scorecard({ user, onScoreSubmit }) {
       setCurrentIndex(nextIndex);
       localStorage.setItem("pubgolf-currentIndex", nextIndex);
       setSips(loadSipsForHole(holes[nextIndex].id));
-    }
-  };
-
-  const handleBack = async () => {
-    await updateScore();
-    if (currentIndex > 0) {
-      const prevIndex = currentIndex - 1;
-      setCurrentIndex(prevIndex);
-      localStorage.setItem("pubgolf-currentIndex", prevIndex);
-      setSips(loadSipsForHole(holes[prevIndex].id));
+    } else {
+      setCurrentIndex(holes.length);
     }
   };
 
   const resetScorecard = async () => {
-    if (window.confirm("Are you sure you want to reset your scorecard?")) {
-      for (let hole of holes) {
-        const ref = doc(db, "games", gameId, "players", user.phone, "scores", hole.id);
-        await deleteDoc(ref);
-      }
-      setScores({});
-      setCurrentIndex(0);
-      localStorage.setItem("pubgolf-currentIndex", 0);
-      setSips();
+    for (let hole of holes) {
+      const ref = doc(db, "games", gameId, "players", user.phone, "scores", hole.id);
+      await deleteDoc(ref);
     }
+    setScores({});
+    setCurrentIndex(0);
+    localStorage.setItem("pubgolf-currentIndex", 0);
+    setSips();
   };
 
   useEffect(() => {
@@ -127,8 +116,14 @@ export default function Scorecard({ user, onScoreSubmit }) {
   const currentProgress = progressIndex === -1 ? holes.length : progressIndex;
 
   useEffect(() => {
-    setSips(loadSipsForHole(holes[currentIndex]?.id));
-  }, [currentIndex, scores]);
+    const nextUnscored = holes.findIndex(h => !scores[h.id]);
+    if (nextUnscored !== -1) {
+      setCurrentIndex(nextUnscored);
+      setSips(loadSipsForHole(holes[nextUnscored].id));
+    } else {
+      setCurrentIndex(holes.length);
+    }
+  }, [scores]);
 
   const totalSips = Object.values(scores).reduce((sum, s) => sum + (s?.sips || 0), 0);
   const totalPar = Object.entries(scores).reduce((sum, [id, s]) => {
@@ -151,6 +146,12 @@ export default function Scorecard({ user, onScoreSubmit }) {
         <h2 className="text-2xl font-bold mb-3">🍾 Congrats on Blacking Out</h2>
         <p className="text-lg">Total Strokes: {totalSips}</p>
         <PlayerStats totalSips={totalSips} parDiff={parDiff} myRank={myRank} totalPlayers={totalPlayers} />
+        <button
+          onClick={resetScorecard}
+          className="mt-4 px-6 py-3 bg-white text-black rounded-full font-semibold"
+        >
+          Restart Scorecard
+        </button>
       </div>
     );
   }
@@ -194,10 +195,6 @@ export default function Scorecard({ user, onScoreSubmit }) {
       </div>
 
       <div className="relative bg-white p-6 rounded-xl shadow border border-gray-200 mb-3">
-        <div className="absolute top-4 right-4 cursor-pointer text-gray-600" onClick={resetScorecard}>
-          <X size={20} />
-        </div>
-
         <div className="text-center mb-2 mt-4">
           <h2 className="text-3xl font-bold text-neutral-800">
             🚩 Hole {currentIndex + 1}: {currentHole.name}
@@ -240,14 +237,7 @@ export default function Scorecard({ user, onScoreSubmit }) {
                 : "bg-green-900 hover:bg-green-999 text-white"
             }`}
           >
-            Next Hole →
-          </button>
-          <button
-            onClick={handleBack}
-            disabled={currentIndex === 0}
-            className="text-sm text-gray-600 disabled:opacity-50"
-          >
-            Back
+            {currentIndex === holes.length - 1 ? "Finish Game" : "Next Hole →"}
           </button>
         </div>
       </div>
