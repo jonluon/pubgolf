@@ -110,7 +110,7 @@ function App() {
 
 <div className="p-6 text-center mb-0">
         <p className="text-3xl font-bold text-gray-800 mb-2">Drinker's Society Open</p>
-          <p className="text-xl font-semibold text-gray-800 mb-2">Tuesday, May 13th</p>
+          <p className="text-xl font-semibold text-gray-800 mb-2">Wednesday, May 14th @ Noon</p>
   <div className="flex items-center justify-center space-x-4">
     <div className="flex-grow h-px bg-gray-200 mt-1"></div>
 <p className="text-md text-gray-400 mb-0">
