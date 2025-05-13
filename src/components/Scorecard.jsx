@@ -24,11 +24,25 @@ const holes = [
 
 function getResult(sips, par) {
   const diff = sips - par;
-  if (diff <= -2) return "\ud83c\udfc6 Eagle";
-  if (diff === -1) return "\ud83d\uddef\ufe0f Birdie";
-  if (diff === 0) return "\u2705 Par";
-  if (diff === 1) return "\u2639\ufe0f Bogey";
-  return "\u00A0";
+  if (diff <= -2) return "🏆 Eagle";
+  if (diff === -1) return "🗭️ Birdie";
+  if (diff === 0) return "✅ Par";
+  if (diff === 1) return "☹️ Bogey";
+  if (diff === 2) return "💀 Double Bogey";
+  return diff > 0 ? `+${diff}` : `${diff}`;
+}
+
+function getDrinkEmoji(drink) {
+  const lower = drink.toLowerCase();
+  if (lower.includes("beer")) return "🍺";
+  if (lower.includes("pitcher")) return "🍻";
+  if (lower.includes("mimosa")) return "🥂";
+  if (lower.includes("coffee")) return "☕";
+  if (lower.includes("trashcan")) return "🗑️";
+  if (lower.includes("shot")) return "🥃";
+  if (lower.includes("sprite")) return "🧃";
+  if (lower.includes("goodbye")) return "👋";
+  return "🍹";
 }
 
 export default function Scorecard({ user, onScoreSubmit }) {
@@ -113,7 +127,7 @@ export default function Scorecard({ user, onScoreSubmit }) {
   const currentProgress = progressIndex === -1 ? holes.length : progressIndex;
 
   useEffect(() => {
-    setSips(loadSipsForHole(holes[currentIndex].id));
+    setSips(loadSipsForHole(holes[currentIndex]?.id));
   }, [currentIndex, scores]);
 
   const totalSips = Object.values(scores).reduce((sum, s) => sum + (s?.sips || 0), 0);
@@ -127,16 +141,16 @@ export default function Scorecard({ user, onScoreSubmit }) {
     const sum = (obj) => Object.values(obj?.scores || {}).reduce((s, val) => s + (val?.sips || 0), 0);
     return sum(a) - sum(b);
   });
-  const myPlayer = sorted.find((p) => p.phone === user.phone);
-const myStrokes = totalSips;
+  const myStrokes = totalSips;
   const myRank = myStrokes > 0 ? sorted.findIndex((p) => p.phone === user.phone) + 1 : "--";
   const totalPlayers = sorted.length;
 
   if (currentIndex >= holes.length) {
     return (
-      <div className="bg-green-50 p-4 rounded-xl shadow-sm mb-6 text-center">
-        <h2 className="text-xl font-bold text-green-700 mb-2">✅ Scorecard Complete</h2>
+      <div className="bg-black text-white p-6 rounded-xl shadow-sm mb-6 text-center">
+        <h2 className="text-2xl font-bold mb-3">🍾 Congrats on Blacking Out</h2>
         <p className="text-lg">Total Strokes: {totalSips}</p>
+        <PlayerStats totalSips={totalSips} parDiff={parDiff} myRank={myRank} totalPlayers={totalPlayers} />
       </div>
     );
   }
@@ -144,57 +158,39 @@ const myStrokes = totalSips;
   return (
     <>
       <div className="w-full max-w-full overflow-x-auto mb-3">
-<div className="relative w-full flex flex-col items-center mb-3">
-  {/* Line Behind */}
-  <div className="absolute top-9 left-5 right-5 h-1 bg-gray-200 rounded-full z-0">
-    <div
-      className="h-1 bg-green-700 rounded-full transition-all"
-      style={{
-        width: `${(currentProgress / (holes.length - 1)) * 100}%`
-      }}
-    ></div>
-  </div>
+        <div className="relative w-full flex flex-col items-center mb-3">
+          <div className="absolute top-9 left-5 right-5 h-1 bg-gray-200 rounded-full z-0">
+            <div
+              className="h-1 bg-green-700 rounded-full transition-all"
+              style={{ width: `${(currentProgress / (holes.length - 1)) * 100}%` }}
+            ></div>
+          </div>
 
-  {/* Circles Row */}
-  <div className="flex justify-between w-full px-2 z-10">
-    {holes.map((hole, i) => {
-      const isCurrent = i === currentProgress;
-      const isCompleted = scores[hole.id];
-      const isPerfect = isCompleted && scores[hole.id].sips === 1;
-const statusColor = i === progressIndex
-  ? "bg-green-900 text-white"
-  : isPerfect
-  ? "bg-gradient-to-r from-yellow-300 to-yellow-500 text-white"
-  : isCompleted
-  ? "bg-green-700 text-white"
-  : "bg-gray-200 text-gray-600";
-
-const scale = i === currentIndex ? "scale-110" : "";
-const shadow = i === currentIndex ? "shadow-md" : "";
-
-      const scoreDiff = isCompleted ? scores[hole.id].sips - hole.par : null;
-      const diffLabel =
-        scoreDiff === 0
-          ? "Par"
-          : scoreDiff > 0
-          ? `+${scoreDiff}`
-          : `${scoreDiff}`;
-
-      return (
-        <div key={hole.id} className="flex flex-col items-center text-xs space-y-1 w-[30px]">
-          <div className="text-gray-500">{isCompleted ? diffLabel : " "}</div>
-<div
-  className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm transition-transform duration-200 ${statusColor} ${scale} ${shadow}`}
->
-  {i + 1}
-</div>
-
+          <div className="flex justify-between w-full px-2 z-10">
+            {holes.map((hole, i) => {
+              const isCurrent = i === currentProgress;
+              const isCompleted = scores[hole.id];
+              const isPerfect = isCompleted && scores[hole.id].sips === 1;
+              const statusColor = i === progressIndex
+                ? "bg-green-900 text-white"
+                : isPerfect
+                ? "bg-gradient-to-r from-yellow-300 to-yellow-500 text-white"
+                : isCompleted
+                ? "bg-green-700 text-white"
+                : "bg-gray-200 text-gray-600";
+              const scale = i === currentIndex ? "scale-110" : "";
+              const shadow = i === currentIndex ? "shadow-md" : "";
+              const scoreDiff = isCompleted ? scores[hole.id].sips - hole.par : null;
+              const diffLabel = scoreDiff === 0 ? "Par" : scoreDiff > 0 ? `+${scoreDiff}` : `${scoreDiff}`;
+              return (
+                <div key={hole.id} className="flex flex-col items-center text-xs space-y-1 w-[30px]">
+                  <div className="text-gray-500">{isCompleted ? diffLabel : "\u00A0"}</div>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm transition-transform duration-200 ${statusColor} ${scale} ${shadow}`}>{i + 1}</div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      );
-    })}
-  </div>
-</div>
-
       </div>
 
       <div className="relative bg-white p-6 rounded-xl shadow border border-gray-200 mb-3">
@@ -209,7 +205,7 @@ const shadow = i === currentIndex ? "shadow-md" : "";
         </div>
 
         <p className="text-center text-lg font-semibold text-gray-800 mb-6">
-          🍹 {currentHole.drink} <span className="text-gray-500 font-normal">(Par {currentHole.par})</span>
+          {getDrinkEmoji(currentHole.drink)} {currentHole.drink} <span className="text-gray-500 font-normal">(Par {currentHole.par})</span>
         </p>
 
         <div className="flex items-center justify-center space-x-4 mb-2">
@@ -256,7 +252,7 @@ const shadow = i === currentIndex ? "shadow-md" : "";
         </div>
       </div>
 
- <PlayerStats totalSips={totalSips} parDiff={parDiff} myRank={myRank} totalPlayers={totalPlayers} />
+      <PlayerStats totalSips={totalSips} parDiff={parDiff} myRank={myRank} totalPlayers={totalPlayers} />
     </>
   );
 }
