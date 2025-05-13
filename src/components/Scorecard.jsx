@@ -36,9 +36,8 @@ function getResult(sips, par) {
 
 export default function Scorecard({ user, onScoreSubmit }) {
   const gameId = "drinkers-society";
-  const storedIndex = parseInt(localStorage.getItem("pubgolf-currentIndex")) || 0;
   const [scores, setScores] = useState({});
-  const [currentIndex, setCurrentIndex] = useState(storedIndex);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [sips, setSips] = useState();
   const [players, setPlayers] = useState([]);
   const [hasCelebrated, setHasCelebrated] = useState(false);
@@ -67,11 +66,9 @@ export default function Scorecard({ user, onScoreSubmit }) {
     if (currentIndex < holes.length - 1) {
       const nextIndex = currentIndex + 1;
       setCurrentIndex(nextIndex);
-      localStorage.setItem("pubgolf-currentIndex", nextIndex);
       setSips(loadSipsForHole(holes[nextIndex].id));
     } else {
       setCurrentIndex(currentIndex + 1);
-      localStorage.setItem("pubgolf-currentIndex", currentIndex + 1);
     }
   };
 
@@ -80,7 +77,6 @@ export default function Scorecard({ user, onScoreSubmit }) {
     if (currentIndex > 0) {
       const prevIndex = currentIndex - 1;
       setCurrentIndex(prevIndex);
-      localStorage.setItem("pubgolf-currentIndex", prevIndex);
       setSips(loadSipsForHole(holes[prevIndex].id));
     }
   };
@@ -93,7 +89,6 @@ export default function Scorecard({ user, onScoreSubmit }) {
       }
       setScores({});
       setCurrentIndex(0);
-      localStorage.setItem("pubgolf-currentIndex", 0);
       setSips();
       if (typeof onScoreSubmit === "function") onScoreSubmit();
       setRefreshKey((prev) => prev + 1);
@@ -107,6 +102,11 @@ export default function Scorecard({ user, onScoreSubmit }) {
         const loaded = {};
         snapshot.forEach((doc) => (loaded[doc.id] = doc.data()));
         setScores(loaded);
+
+        // Set currentIndex dynamically based on progress
+        const progressIndex = holes.findIndex(h => !loaded[h.id]);
+        const nextHoleIndex = progressIndex === -1 ? holes.length : progressIndex;
+        setCurrentIndex(nextHoleIndex);
       }
     );
     return () => unsub();
@@ -119,9 +119,6 @@ export default function Scorecard({ user, onScoreSubmit }) {
     });
     return () => unsub();
   }, []);
-
-  const progressIndex = holes.findIndex(h => !scores[h.id]);
-  const currentProgress = progressIndex === -1 ? holes.length : progressIndex;
 
   useEffect(() => {
     setSips(loadSipsForHole(holes[currentIndex]?.id));
@@ -173,24 +170,24 @@ export default function Scorecard({ user, onScoreSubmit }) {
             <div
               className="h-1 bg-green-700 rounded-full transition-all"
               style={{
-                width: `${(currentProgress / (holes.length - 1)) * 100}%`
+                width: `${(currentIndex / (holes.length - 1)) * 100}%`
               }}
             ></div>
           </div>
           <div className="flex justify-between w-full px-2 z-10">
             {holes.map((hole, i) => {
-              const isCurrent = i === currentProgress;
+              const isCurrent = i === currentIndex;
               const isCompleted = scores[hole.id];
               const isPerfect = isCompleted && scores[hole.id].sips === 1;
-              const statusColor = i === progressIndex
+              const statusColor = isCurrent
                 ? "bg-green-900 text-white"
                 : isPerfect
                 ? "bg-gradient-to-r from-yellow-300 to-yellow-500 text-white"
                 : isCompleted
                 ? "bg-green-700 text-white"
                 : "bg-gray-200 text-gray-600";
-              const scale = i === currentIndex ? "scale-110" : "";
-              const shadow = i === currentIndex ? "shadow-md" : "";
+              const scale = isCurrent ? "scale-110" : "";
+              const shadow = isCurrent ? "shadow-md" : "";
               const scoreDiff = isCompleted ? scores[hole.id].sips - hole.par : null;
               const diffLabel =
                 scoreDiff === 0
