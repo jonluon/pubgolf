@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { db } from "../firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc } from "firebase/firestore";
 import { RotateCcw } from "lucide-react";
 
 const holeOrder = [
@@ -8,7 +8,7 @@ const holeOrder = [
 ];
 
 export default function Leaderboard({ gameId, refreshKey }) {
-  const [players, setPlayers] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [localRefresh, setLocalRefresh] = useState(0);
   const [loading, setLoading] = useState(false);
 
@@ -19,7 +19,8 @@ export default function Leaderboard({ gameId, refreshKey }) {
 
       const data = await Promise.all(
         playerSnaps.docs.map(async (docSnap) => {
-          const player = docSnap.data();
+          const player = { phone: docSnap.id, ...docSnap.data() };
+
           const scoresSnap = await getDocs(
             collection(db, "games", gameId, "players", player.phone, "scores")
           );
@@ -37,13 +38,22 @@ export default function Leaderboard({ gameId, refreshKey }) {
         })
       );
 
-      const sorted = data.sort((a, b) => {
-        if (a.totalStrokes === 0 && b.totalStrokes > 0) return 1;
-        if (b.totalStrokes === 0 && a.totalStrokes > 0) return -1;
-        return a.totalStrokes - b.totalStrokes;
+      const validPlayers = data.filter(p => p);
+
+      const teamMap = {};
+      for (const player of validPlayers) {
+        const teamName = player.team?.trim() || "No Team";
+        if (!teamMap[teamName]) teamMap[teamName] = [];
+        teamMap[teamName].push(player);
+      }
+
+      const teamList = Object.entries(teamMap).map(([teamName, members]) => {
+        const teamTotal = members.reduce((sum, p) => sum + (p.totalStrokes || 0), 0);
+        return { teamName, members, teamTotal };
       });
 
-      setPlayers(sorted);
+      teamList.sort((a, b) => a.teamTotal - b.teamTotal);
+      setTeams(teamList);
     } catch (err) {
       console.error("Leaderboard fetch error:", err);
     }
@@ -53,14 +63,6 @@ export default function Leaderboard({ gameId, refreshKey }) {
   useEffect(() => {
     loadLeaderboard();
   }, [gameId, refreshKey, localRefresh]);
-
-  const getMedal = (index, player) => {
-    if (player.totalStrokes === 0) return "—";
-    if (index === 0) return "🥇";
-    if (index === 1) return "🥈";
-    if (index === 2) return "🥉";
-    return `${index + 1}.`;
-  };
 
   return (
     <div className="relative bg-white p-6 rounded-xl shadow border border-gray-200 mb-3 overflow-x-auto">
@@ -92,7 +94,7 @@ export default function Leaderboard({ gameId, refreshKey }) {
       <table className="table-auto w-full text-sm text-center border-collapse">
         <thead>
           <tr>
-            <th className="text-left px-2 py-2 border-b border-gray-300">Player</th>
+            <th className="text-left px-2 py-2 border-b border-gray-300">Team / Player</th>
             {holeOrder.map((holeId, i) => (
               <th key={holeId} className="px-2 py-2 border-b border-gray-300">
                 {i + 1}
@@ -102,18 +104,29 @@ export default function Leaderboard({ gameId, refreshKey }) {
           </tr>
         </thead>
         <tbody>
-          {players.map((player, index) => (
-            <tr key={player.phone} className="border-t border-gray-100">
-              <td className="text-left font-medium px-2 py-2 whitespace-nowrap">
-                {getMedal(index, player)} {player.name || "Unnamed"}
-              </td>
-              {holeOrder.map((holeId) => (
-                <td key={holeId} className="px-2 py-1 text-gray-700">
-                  {player.scores?.[holeId] ?? "-"}
+          {teams.map((team, index) => (
+            <>
+              <tr key={`team-${team.teamName}`} className="border-t border-gray-200 bg-gray-50">
+                <td className="text-left font-bold px-2 py-2 whitespace-nowrap">
+                  {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `${index + 1}.`} {team.teamName}
                 </td>
+                {holeOrder.map((_, i) => (
+                  <td key={`spacer-${i}`}></td>
+                ))}
+                <td className="font-bold text-gray-900">{team.teamTotal}</td>
+              </tr>
+              {team.members.map((player) => (
+                <tr key={`player-${player.phone}`} className="text-gray-500">
+                  <td className="text-left px-2 py-1 whitespace-nowrap">{player.name || "Unnamed"}</td>
+                  {holeOrder.map((holeId) => (
+                    <td key={holeId} className="px-2 py-1">
+                      {player.scores?.[holeId] ?? "-"}
+                    </td>
+                  ))}
+                  <td className="font-medium">{player.totalStrokes}</td>
+                </tr>
               ))}
-              <td className="font-semibold text-gray-800">{player.totalStrokes}</td>
-            </tr>
+            </>
           ))}
         </tbody>
       </table>

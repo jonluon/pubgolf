@@ -18,28 +18,14 @@ function App() {
   const [error, setError] = useState(null);
   const [showLogout, setShowLogout] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [countdown, setCountdown] = useState("");
   const gameId = "drinkers-society";
 
-  const targetTime = new Date("2025-05-14T12:00:00-04:00"); // EST
-
   useEffect(() => {
-    const interval = setInterval(() => {
-      const now = new Date();
-      const diff = targetTime - now;
-
-      if (diff <= 0) {
-        setCountdown("LIVE");
-        clearInterval(interval);
-      } else {
-        const hours = String(Math.floor((diff / (1000 * 60 * 60)) % 24)).padStart(2, '0');
-        const minutes = String(Math.floor((diff / (1000 * 60)) % 60)).padStart(2, '0');
-        const seconds = String(Math.floor((diff / 1000) % 60)).padStart(2, '0');
-        setCountdown(`${hours}:${minutes}:${seconds}`);
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
+    const saved = localStorage.getItem("pubgolf-user");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setUser(parsed);
+    }
   }, []);
 
   const handleLogin = async ({ name, phone }) => {
@@ -49,8 +35,10 @@ function App() {
         name,
         phone,
         joinedAt: new Date()
-      });
-      setUser({ name, phone });
+      }, { merge: true });
+      const userData = { name, phone };
+      setUser(userData);
+      localStorage.setItem("pubgolf-user", JSON.stringify(userData));
     } catch (err) {
       console.error("Firestore join error:", err);
       setError("❌ Couldn't join game. You're likely offline or blocked by network.");
@@ -59,6 +47,7 @@ function App() {
 
   const handleLogout = async () => {
     await signOut(auth);
+    localStorage.removeItem("pubgolf-user");
     setUser(null);
     setShowLogout(false);
   };
@@ -68,21 +57,6 @@ function App() {
   };
 
   useEffect(() => {
-    const unsubAuth = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const phone = user.phoneNumber;
-        try {
-          const docRef = doc(db, "games", gameId, "players", phone);
-          const snapshot = await getDoc(docRef);
-          if (snapshot.exists()) {
-            setUser({ phone, name: snapshot.data().name });
-          }
-        } catch (err) {
-          console.error("Auto-login fetch failed:", err);
-        }
-      }
-    });
-
     const unsubPlayers = onSnapshot(
       collection(db, "games", gameId, "players"),
       (snapshot) => {
@@ -96,7 +70,6 @@ function App() {
     );
 
     return () => {
-      unsubAuth();
       unsubPlayers();
     };
   }, []);
@@ -106,7 +79,7 @@ function App() {
   return (
     <div className="max-w-xl mx-auto mt-2 p-4 relative">
       <div className="flex justify-between items-center mb-2">
-        <div className="text-black text-lg">🍺⛳pubgolf</div>
+        <div className="text-black text-lg">🍺🏌️pubgolf</div>
         <div className="relative">
           <div
             onClick={() => setShowLogout((prev) => !prev)}
@@ -132,10 +105,7 @@ function App() {
 
       <div className="p-6 text-center mb-0">
         <p className="text-3xl font-bold text-gray-800 mb-2">Drinker's Society Open</p>
-        <p className="text-xl font-semibold text-gray-800 mb-2">Wednesday, May 14th @ Noon</p>
-        <p className={`text-lg font-bold ${countdown === "LIVE" ? "text-red-600" : "text-gray-700"}`}>
-          {countdown === "LIVE" ? "LIVE" : `Starts in: ${countdown}`}
-        </p>
+        <p className="text-xl font-semibold text-gray-800 mb-2">Wednesday, May 14th @ 12:00pm</p>
         <div className="flex items-center justify-center space-x-4 mt-2">
           <div className="flex-grow h-px bg-gray-200 mt-1"></div>
           <p className="text-md text-gray-400 mb-0">
